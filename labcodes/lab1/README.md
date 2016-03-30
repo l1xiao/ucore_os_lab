@@ -193,7 +193,7 @@ These instructions clear various flags.
 #####line29~35
 给64h端口发送d1指令
 D1 Write Output Port: next byte written to port 60h is placed in the 8042 output port (which is inaccessible to the data bus)
-![](/api/document/files/unzip/70692580-a3e4-473d-9944-e0f89230917d/99fda9e0-91b6-4f94-9fdc-a22ad961d422.6573/index_files/d728cfde-e21c-463c-b422-d1d264a34c87.png)
+![](report_2.png)
 即下次输出到60h port的数据将会发送到这个port
 
 #####line36~43
