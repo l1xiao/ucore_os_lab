@@ -193,6 +193,7 @@ page_init(void) {
 
     cprintf("e820map:\n");
     int i;
+    // 从bootloader给出的内存布局信息找出最大的物理内存地址maxpa
     for (i = 0; i < memmap->nr_map; i ++) {
         uint64_t begin = memmap->map[i].addr, end = begin + memmap->map[i].size;
         cprintf("  memory: %08llx, [%08llx, %08llx], type = %d.\n",
@@ -208,14 +209,17 @@ page_init(void) {
     }
 
     extern char end[];
-
+    // x86的起始物理内存地址为0，所以可以得知需要管理的物理页个数
     npage = maxpa / PGSIZE;
+    // bootloader加载ucore的结束地址（用全局指针变量end记录）以上的空间没有被使用
+    // 所以我们可以把end按页大小为边界去整后，作为管理页级物理内存空间所需的Page结构的内存空间
     pages = (struct Page *)ROUNDUP((void *)end, PGSIZE);
-
+    // 标记占用的物理空间
     for (i = 0; i < npage; i ++) {
         SetPageReserved(pages + i);
     }
-
+    // 从地址0到地址pages+ sizeof(struct Page) * npage)结束的物理内存空间设定为已占用物理内存空间，
+    // 地址pages+ sizeof(struct Page) * npage)以上的空间为空闲物理内存空间，这时的空闲空间起始地址为freemem
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
 
     for (i = 0; i < memmap->nr_map; i ++) {
@@ -231,6 +235,7 @@ page_init(void) {
                 begin = ROUNDUP(begin, PGSIZE);
                 end = ROUNDDOWN(end, PGSIZE);
                 if (begin < end) {
+                    // 标记空闲空间
                     init_memmap(pa2page(begin), (end - begin) / PGSIZE);
                 }
             }
