@@ -193,7 +193,7 @@ page_init(void) {
 
     cprintf("e820map:\n");
     int i;
-    // 从bootloader给出的内存布局信息找出最大的物理内存地址maxpa
+    // 从bootloader给出的内存布局信息找出最大的物理内存地址maxpa, nr_map是数组大小
     for (i = 0; i < memmap->nr_map; i ++) {
         uint64_t begin = memmap->map[i].addr, end = begin + memmap->map[i].size;
         cprintf("  memory: %08llx, [%08llx, %08llx], type = %d.\n",
@@ -235,7 +235,7 @@ page_init(void) {
                 begin = ROUNDUP(begin, PGSIZE);
                 end = ROUNDDOWN(end, PGSIZE);
                 if (begin < end) {
-                    // 标记空闲空间
+                    // 标记空闲空间,begin is physical address
                     init_memmap(pa2page(begin), (end - begin) / PGSIZE);
                 }
             }
