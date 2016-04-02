@@ -260,6 +260,8 @@ enable_paging(void) {
 //  size: memory size
 //  pa:   physical address of this memory
 //  perm: permission of this memory  
+// boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, 0, PTE_W);
+// 由于段式管理只做直接映射，所以这里的la也是逻辑地址
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, uintptr_t pa, uint32_t perm) {
     assert(PGOFF(la) == PGOFF(pa));
