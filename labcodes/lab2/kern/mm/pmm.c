@@ -218,7 +218,7 @@ page_init(void) {
     for (i = 0; i < npage; i ++) {
         SetPageReserved(pages + i);
     }
-    // 从地址0到地址pages+ sizeof(struct Page) * npage)结束的物理内存空间设定为已占用物理内存空间，
+    // 从地址0到地址pages+ sizeof(struct Page) * npage结束的物理内存空间设定为已占用物理内存空间，
     // 地址pages+ sizeof(struct Page) * npage)以上的空间为空闲物理内存空间，这时的空闲空间起始地址为freemem
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
 

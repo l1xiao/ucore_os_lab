@@ -1,4 +1,4 @@
-##lab1 make qemu后发生的事
+#lab1 make qemu后发生的事
 ```
 |>    硬件控制
 |    | 系统加电后，寄存器CS：EIP初值是0xFFFFFFF0
@@ -29,3 +29,5 @@
 |    |>    trap.c
 |    | 中断触发后由dispath负责响应
 ```
+#实验报告
+[lab1实验报告](labcodes/lab1/report.md)
