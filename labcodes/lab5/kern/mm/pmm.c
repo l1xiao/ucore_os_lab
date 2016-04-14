@@ -396,6 +396,18 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     }
     return NULL;          // (8) return page table entry
 #endif
+    pde_t *pdep = &pgdir[PDX(la)];
+    if (!(*pdep & PTE_P)) {
+        struct Page *page;
+        if (!create || (page = alloc_page()) == NULL) {
+            return NULL;
+        }
+        set_page_ref(page, 1);
+        uintptr_t pa = page2pa(page);
+        memset(KADDR(pa), 0, PGSIZE);
+        *pdep = pa | PTE_U | PTE_W | PTE_P;
+    }
+    return &((pte_t *)KADDR(PDE_ADDR(*pdep)))[PTX(la)];
 }
 
 //get_page - get related Page struct for linear address la using PDT pgdir
@@ -522,6 +534,7 @@ copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end, bool share) {
          * (3) memory copy from src_kvaddr to dst_kvaddr, size is PGSIZE
          * (4) build the map of phy addr of  nage with the linear addr start
          */
+		
         assert(ret == 0);
         }
         start += PGSIZE;
@@ -588,18 +601,10 @@ pgdir_alloc_page(pde_t *pgdir, uintptr_t la, uint32_t perm) {
             return NULL;
         }
         if (swap_init_ok){
-            if(check_mm_struct!=NULL) {
-                swap_map_swappable(check_mm_struct, la, page, 0);
-                page->pra_vaddr=la;
-                assert(page_ref(page) == 1);
-                //cprintf("get No. %d  page: pra_vaddr %x, pra_link.prev %x, pra_link_next %x in pgdir_alloc_page\n", (page-pages), page->pra_vaddr,page->pra_page_link.prev, page->pra_page_link.next);
-            } 
-            else  {  //now current is existed, should fix it in the future
-                //swap_map_swappable(current->mm, la, page, 0);
-                //page->pra_vaddr=la;
-                //assert(page_ref(page) == 1);
-                //panic("pgdir_alloc_page: no pages. now current is existed, should fix it in the future\n");
-            }
+            swap_map_swappable(check_mm_struct, la, page, 0);
+            page->pra_vaddr=la;
+            assert(page_ref(page) == 1);
+            //cprintf("get No. %d  page: pra_vaddr %x, pra_link.prev %x, pra_link_next %x in pgdir_alloc_page\n", (page-pages), page->pra_vaddr,page->pra_page_link.prev, page->pra_page_link.next);
         }
 
     }

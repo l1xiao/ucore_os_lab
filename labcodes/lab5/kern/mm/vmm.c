@@ -493,35 +493,44 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
         }
    }
 #endif
+    // try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
+    if ((ptep = get_pte(mm->pgdir, addr, 1)) == NULL) {
+        cprintf("get_pte in do_pgfault failed\n");
+        goto failed;
+    }
+    //(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr    
+    if (*ptep == 0) {
+        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) {
+            cprintf("pgdir_alloc_page in do_pgfault failed\n");
+            goto failed;
+        }
+    }
+    // if this pte is a swap entry, then load data from disk to a page with phy addr
+    // and call page_insert to map the phy addr with logical addr
+    else {
+        if(swap_init_ok) {
+            struct Page *page=NULL;
+            //(1）According to the mm AND addr, try to load the content of right disk page
+            //    into the memory which page managed.
+            if ((ret = swap_in(mm, addr, &page)) != 0) {
+                cprintf("swap_in in do_pgfault failed\n");
+                goto failed;
+            }
+            //(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr
+            page_insert(mm->pgdir, page, addr, perm);
+            //(3) make the page swappable.
+            swap_map_swappable(mm, addr, page, 1);
+            // pra_vaddr可以用来记录此物理页对应的虚拟页起始地址
+            page->pra_vaddr = addr;
+        }
+        else {
+            cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
+            goto failed;
+        }
+    }
+    
    ret = 0;
 failed:
     return ret;
-}
-
-bool
-user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write) {
-    if (mm != NULL) {
-        if (!USER_ACCESS(addr, addr + len)) {
-            return 0;
-        }
-        struct vma_struct *vma;
-        uintptr_t start = addr, end = addr + len;
-        while (start < end) {
-            if ((vma = find_vma(mm, start)) == NULL || start < vma->vm_start) {
-                return 0;
-            }
-            if (!(vma->vm_flags & ((write) ? VM_WRITE : VM_READ))) {
-                return 0;
-            }
-            if (write && (vma->vm_flags & VM_STACK)) {
-                if (start < vma->vm_start + PGSIZE) { //check stack start & size
-                    return 0;
-                }
-            }
-            start = vma->vm_end;
-        }
-        return 1;
-    }
-    return KERN_ACCESS(addr, addr + len);
 }
 
