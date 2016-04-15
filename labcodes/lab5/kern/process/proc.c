@@ -418,8 +418,8 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     {
         proc->pid = get_pid();
         hash_proc(proc);
-        list_add(&proc_list, &(proc->list_link));
-        nr_process ++;
+        set_links(proc);
+
     }
     local_intr_restore(intr_flag);
 
@@ -625,11 +625,11 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_eip should be the entry point of this binary program (elf->e_entry)
      *          tf_eflags should be set to enable computer to produce Interrupt
      */
-	tf->tf_cs = USER_CS;
-	tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
-	tf->tf_esp = USTACKTOP;
-	tf->tf_eip = elf->e_entry;
-	tf->tf_eflags |= FL_IF;
+    tf->tf_cs = USER_CS;
+    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+    tf->tf_esp = USTACKTOP;
+    tf->tf_eip = elf->e_entry;
+    tf->tf_eflags = FL_IF;
     ret = 0;
 out:
     return ret;
@@ -720,8 +720,10 @@ repeat:
                 goto found;
             }
         }
+		cprintf("no zombie\n");
     }
     if (haskid) {
+		cprintf("has kid \n");
         current->state = PROC_SLEEPING;
         current->wait_state = WT_CHILD;
         schedule();
@@ -733,6 +735,7 @@ repeat:
     return -E_BAD_PROC;
 
 found:
+	cprintf("found!\n");
     if (proc == idleproc || proc == initproc) {
         panic("wait idleproc or initproc.\n");
     }
@@ -741,6 +744,8 @@ found:
     }
     local_intr_save(intr_flag);
     {
+		cprintf("current pid:%d, debug\n", current->pid);
+		cprintf("removed pid:%d, debug\n", proc->pid);
         unhash_proc(proc);
         remove_links(proc);
     }
@@ -817,7 +822,8 @@ init_main(void *arg) {
     size_t kernel_allocated_store = kallocated();
 
     int pid = kernel_thread(user_main, NULL, 0);
-    if (pid <= 0) {
+    cprintf("user proc pid:%d\n:", pid);
+	if (pid <= 0) {
         panic("create user_main failed.\n");
     }
 
